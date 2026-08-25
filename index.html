@@ -247,7 +247,7 @@
     <div class="layers">
       <div class="layer"><h4>Wearable Device</h4><p>Wi-Fi-enabled wearable with full sensor suite continuously aggregating vital health metrics and environmental data.</p></div>
       <div class="layer"><h4>AWS IoT Cloud Infrastructure</h4><p>Secure MQTT transmission to AWS IoT Core with DynamoDB storage, Lambda processing, and Cognito authentication.</p></div>
-      <div class="layer"><h4>Predictive AI Model</h4><p>Lightweight AI on AWS analyzes the continuous data stream to detect anomalies and identify potential emergencies in real time.</p></div>
+      
       <div class="layer"><h4>Guardian Web Dashboard</h4><p>AWS triggers immediate alerts and streams real-time vitals, location, and health data to caregivers and first responders.</p></div>
     </div>
   </div>
@@ -258,7 +258,7 @@
   <p class="eye lt">02 -- System Architecture</p>
   <h2 class="st lt">End-to-end data flow.</h2>
   <div class="rule"></div>
-  <p class="sl lt">The system operates across three layers: the wearable device, the AWS cloud backend, and the guardian interface. Data flows from the patient's wrist to first responders in seconds.</p>
+  <p class="sl lt">The system operates across three layers: the wearable device, the AWS cloud backend, and the guardian interface. Data flows from the patient to caregivers and first responders in real time.</p>
 
   <!-- Custom SVG architecture diagram styled to match the site -->
   <svg class="arch-diagram" viewBox="0 0 900 320" xmlns="http://www.w3.org/2000/svg" style="font-family:'Space Grotesk',sans-serif;">
@@ -317,13 +317,7 @@
     <text x="368" y="192" fill="rgba(255,255,255,0.7)" font-size="9.5" font-weight="600" text-anchor="middle">DynamoDB</text>
     <text x="368" y="205" fill="rgba(255,255,255,0.35)" font-size="7.5" text-anchor="middle">Real-Time Storage</text>
 
-    <!-- AI Model -->
-    <rect x="452" y="84" width="135" height="82" rx="4" fill="rgba(0,255,136,0.07)" stroke="rgba(0,255,136,0.2)" stroke-width="1"/>
-    <text x="519" y="101" fill="var(--eg)" font-size="9.5" font-weight="600" text-anchor="middle">Predictive AI Model</text>
-    <text x="519" y="117" fill="rgba(255,255,255,0.35)" font-size="7.5" text-anchor="middle">Anomaly Detection</text>
-    <text x="519" y="131" fill="rgba(255,255,255,0.35)" font-size="7.5" text-anchor="middle">Emergency Classification</text>
-    <text x="519" y="145" fill="rgba(255,255,255,0.35)" font-size="7.5" text-anchor="middle">Event Logic Triggers</text>
-    <text x="519" y="159" fill="rgba(255,204,0,0.6)" font-size="7" text-anchor="middle" font-family="'JetBrains Mono',monospace">SageMaker integration</text>
+
 
     <!-- S3 -->
     <rect x="452" y="176" width="135" height="36" rx="4" fill="rgba(255,255,255,0.04)" stroke="rgba(255,255,255,0.1)" stroke-width="1"/>
@@ -461,7 +455,7 @@
   <p class="eye gd">05 -- Firmware and Cloud</p>
   <h2 class="st lt">Data pipeline and telemetry payload.</h2>
   <div class="rule"></div>
-  <p class="sl lt">Every 5 seconds the device serializes a structured JSON telemetry payload and publishes to AWS IoT Core via MQTT over TLS. AWS Lambda functions handle normalization, anomaly detection, and alert routing to the guardian dashboard.</p>
+  <p class="sl lt">Every 5 seconds the device serializes a structured JSON telemetry payload and publishes to AWS IoT Core via MQTT over TLS. AWS Lambda functions handle data normalization and alert routing to the guardian dashboard.</p>
   <table class="tbl">
     <thead><tr><th>Category</th><th>Parameters</th><th>Source</th><th>Rate</th></tr></thead>
     <tbody>
@@ -550,14 +544,7 @@
         <p>Wireless charging coils are incorporated into the enclosure design but were not implemented in the prototype hardware. This would be addressed during a PCB design phase.</p>
       </div>
     </div>
-    <div class="tl-item">
-      <div class="tl-marker"><span>C</span></div>
-      <div class="tl-content">
-        <div class="tl-label">Known Limitation</div>
-        <h4>AI Anomaly Detection</h4>
-        <p>The AWS Lambda and data pipeline infrastructure is in place to support a predictive model. The anomaly detection model itself remains early stage -- a production implementation would integrate AWS SageMaker in a future development phase.</p>
-      </div>
-    </div>
+    
   </div>
 
   <p style="font-family:'JetBrains Mono',monospace;font-size:.68rem;letter-spacing:.14em;color:rgba(255,255,255,.3);text-transform:uppercase;margin-bottom:1.25rem;">Future Work</p>
@@ -665,13 +652,13 @@
   <div style="margin-bottom:2.5rem;">
     <h3 style="font-family:'Space Grotesk',sans-serif;font-size:1.1rem;font-weight:700;color:#fff;margin-bottom:.75rem;padding-bottom:.6rem;border-bottom:1px solid rgba(255,255,255,.08);">AWS IoT Core to DynamoDB Pipeline</h3>
     <p class="body lt">An AWS IoT rule was configured to write incoming MQTT messages straight into DynamoDB as they arrive, with no manual handling in between. One key implementation detail discovered during setup: when configuring the IoT rule, the "Write message data to this column" field must be left empty so the entire JSON message is inserted as an attribute rather than being dropped. This took non-trivial debugging to identify.</p>
-    <p class="body lt">CloudWatch dashboards were set up to monitor the pipeline and verify data is flowing as expected. AWS HIPAA compliance documentation was also reviewed to understand requirements for processing and storing protected health information, which informed the authentication and access control decisions made downstream.</p>
+    <p class="body lt">CloudWatch dashboards were set up to monitor the pipeline and verify data is flowing as expected. AWS documentation on data privacy requirements was reviewed during development to inform authentication and access control design decisions. Full HIPAA compliance would require additional work including encryption at rest, audit logging, and Business Associate Agreements with AWS -- none of which were implemented in this prototype.</p>
   </div>
 
   <!-- DynamoDB data modeling -->
   <div style="margin-bottom:2.5rem;">
     <h3 style="font-family:'Space Grotesk',sans-serif;font-size:1.1rem;font-weight:700;color:#fff;margin-bottom:.75rem;padding-bottom:.6rem;border-bottom:1px solid rgba(255,255,255,.08);">DynamoDB Data Modeling and Query Optimization</h3>
-    <p class="body lt">The data is modeled using a partition/sort key (pk/sk) structure so readings are organized per patient and per device. The system moved away from scanning the entire table on every request -- readings are now queried by patient ID, which pulls a patient's vitals history directly and efficiently. This patient-scoped, time-ordered query approach supports 24-hour vitals views, trend analysis over time, and future doctor dashboards and alerting without degrading performance at scale.</p>
+    <p class="body lt">The data is modeled using a partition/sort key (pk/sk) structure so readings are organized per patient and per device. The system moved away from scanning the entire table on every request -- readings are now queried by patient ID, which pulls a patient's vitals history directly and efficiently. This patient-scoped, time-ordered query approach supports 24-hour vitals views and trend analysis over time without degrading performance at scale.</p>
     <p class="body lt">The backend uses three active DynamoDB tables: Doctors, Patients, and VitalsReadings.</p>
   </div>
 
@@ -686,7 +673,7 @@
     <h3 style="font-family:'Space Grotesk',sans-serif;font-size:1.1rem;font-weight:700;color:#fff;margin-bottom:.75rem;padding-bottom:.6rem;border-bottom:1px solid rgba(255,255,255,.08);">Secure Authentication -- AWS Cognito</h3>
     <p class="body lt">The original web app had only a placeholder login screen that collected a username and moved to the next page without verifying anything -- there was no real authentication. This was replaced with a full, secure sign-in flow backed by AWS Cognito.</p>
     <p class="body lt">AWS Cognito was integrated as the identity provider, with a Cognito user pool configured and wired into the app through an OIDC authentication provider so login is handled by AWS rather than custom code. The login page now redirects users to authenticate against Cognito and handles the sign-in callback. Protected routes were built so the dashboard and individual patient pages can only be reached by authenticated users -- anyone not signed in is automatically redirected to the login page. Session-based login persists an authenticated user's session appropriately across the app.</p>
-    <p class="body lt">This authentication layer directly supports the HIPAA access-control requirements researched earlier, since patient vitals are no longer reachable without a verified login.</p>
+    <p class="body lt">This authentication layer ensures patient data is not publicly accessible without a verified login. It represents a meaningful step toward secure data handling, though a production medical deployment would require additional compliance measures beyond authentication alone.</p>
   </div>
 
   <!-- Frontend integration -->
